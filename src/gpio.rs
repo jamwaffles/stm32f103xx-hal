@@ -4,7 +4,6 @@
 // that let you select different microcontroller packages
 
 use core::marker::PhantomData;
-
 use rcc::APB2;
 
 /// Extension trait to split a GPIO peripheral in independent pins and registers
@@ -57,7 +56,7 @@ macro_rules! gpio {
             use rcc::APB2;
             use super::{
                 Alternate, Floating, GpioExt, Input,
-                // OpenDrain,
+                OpenDrain,
                 Output,
                 // PullDown, PullUp,
                 PushPull,
@@ -159,6 +158,27 @@ macro_rules! gpio {
                         let offset = (4 * $i) % 32;
                         // Alternate function output push pull
                         let cnf = 0b10;
+                        // Output mode, max speed 50 MHz
+                        let mode = 0b11;
+                        let bits = (cnf << 2) | mode;
+
+                        // input mode
+                        cr
+                            .cr()
+                            .modify(|r, w| unsafe {
+                                w.bits((r.bits() & !(0b1111 << offset)) | (bits << offset))
+                            });
+
+                        $PXi { _mode: PhantomData }
+                    }
+
+                    pub fn into_alternate_open_drain(
+                        self,
+                        cr: &mut $CR,
+                    ) -> $PXi<Alternate<OpenDrain>> {
+                        let offset = (4 * $i) % 32;
+                        // Alternate function output open drain
+                        let cnf = 0b11;
                         // Output mode, max speed 50 MHz
                         let mode = 0b11;
                         let bits = (cnf << 2) | mode;
